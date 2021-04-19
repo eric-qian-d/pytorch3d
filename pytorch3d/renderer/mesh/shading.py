@@ -9,6 +9,12 @@ from pytorch3d.ops import interpolate_face_attributes
 from .textures import TexturesVertex
 
 
+def multi_shading(
+	meshes, fragments, lights, cameras, materials, texels	
+) -> torch.Tensor:
+		return texels
+
+
 def _apply_lighting(
     points, normals, lights, cameras, materials
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:

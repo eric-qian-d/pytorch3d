@@ -52,6 +52,7 @@ from .mesh import (
     gouraud_shading,
     phong_shading,
     rasterize_meshes,
+    SoftMultiShader
 )
 from .points import (
     AlphaCompositor,

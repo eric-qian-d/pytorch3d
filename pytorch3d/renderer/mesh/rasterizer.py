@@ -129,7 +129,7 @@ class MeshRasterizer(nn.Module):
         meshes_screen = meshes_world.update_padded(new_verts_padded=verts_screen)
         return meshes_screen
 
-    def forward(self, meshes_world, **kwargs) -> Fragments:
+    def forward(self, meshes_screen, **kwargs) -> Fragments:
         """
         Args:
             meshes_world: a Meshes object representing a batch of meshes with
@@ -137,7 +137,6 @@ class MeshRasterizer(nn.Module):
         Returns:
             Fragments: Rasterization outputs as a named tuple.
         """
-        meshes_screen = self.transform(meshes_world, **kwargs)
         raster_settings = kwargs.get("raster_settings", self.raster_settings)
 
         # By default, turn on clip_barycentric_coords if blur_radius > 0.
