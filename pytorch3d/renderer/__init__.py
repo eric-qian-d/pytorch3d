@@ -44,6 +44,7 @@ from .mesh import (
     RasterizationSettings,
     SoftGouraudShader,
     SoftPhongShader,
+    SoftMultiAlphaShader,
     SoftSilhouetteShader,
     Textures,
     TexturesAtlas,

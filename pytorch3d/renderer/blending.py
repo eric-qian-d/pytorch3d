@@ -307,7 +307,7 @@ def softmax_multi_blend(
     return pixel_colors
 
 def softmax_multi_alpha_blend(
-    colors, fragments, blend_params, znear: float = 1.0, zfar: float = 100
+    colors, alphas, fragments, blend_params, znear: float = 1.0, zfar: float = 100
 ) -> torch.Tensor:
     """
     RGB and alpha channel blending to return an RGBA image based on the method
@@ -346,12 +346,19 @@ def softmax_multi_alpha_blend(
     Image-based 3D Reasoning'
     """
 
+    # alphas in shape: batch, height, width, num_pts, 1
+    
     N, H, W, K, F = colors.shape
     N, H, W, K = fragments.pix_to_face.shape
+
+    alpha_weights = alphas.clone()
+    for i in range(1, K):
+        alpha_weights[...,i,:] = (1 - alpha_weights[...,i-1,:]) * alphas[...,i,:]
+
     device = fragments.pix_to_face.device
-    pixel_colors = torch.ones((N, H, W, F+1), dtype=colors.dtype, device=colors.device)
-#    background = blend_params.background_color
+    pixel_colors = torch.ones((N, H, W, F), dtype=colors.dtype, device=colors.device)
     background = torch.ones((N, H, W, F))
+
     if not torch.is_tensor(background):
         background = torch.tensor(background, dtype=torch.float32, device=device)
     else:
@@ -363,30 +370,27 @@ def softmax_multi_alpha_blend(
     # Mask for padded pixels.
     mask = fragments.pix_to_face >= 0
 
+    print('frag', fragments.dists.shape, 'alpha weights', alpha_weights.shape)
     # Sigmoid probability map based on the distance of the pixel to the face.
-    prob_map = torch.sigmoid(-fragments.dists / blend_params.sigma) * mask
+    prob_map = torch.sigmoid(-fragments.dists * alpha_weights.squeeze(4)/ blend_params.sigma) * mask
+    print('prob_map', prob_map.shape)
 
     # The cumulative product ensures that alpha will be 0.0 if at least 1
     # face fully covers the pixel as for that face, prob will be 1.0.
     # This results in a multiplication by 0.0 because of the (1.0 - prob)
     # term. Therefore 1.0 - alpha will be 1.0.
-    alpha = torch.prod((1.0 - prob_map), dim=-1)
+    #alpha = torch.prod((1.0 - prob_map), dim=-1)
 
     # Weights for each face. Adjust the exponential by the max z to prevent
     # overflow. zbuf shape (N, H, W, K), find max over K.
-    # TODO: there may still be some instability in the exponent calculation.
 
     z_inv = (zfar - fragments.zbuf) / (zfar - znear) * mask
-    # pyre-fixme[16]: `Tuple` has no attribute `values`.
-    # pyre-fixme[6]: Expected `Tensor` for 1st param but got `float`.
     z_inv_max = torch.max(z_inv, dim=-1).values[..., None].clamp(min=eps)
-    # pyre-fixme[6]: Expected `Tensor` for 1st param but got `float`.
+
     weights_num = prob_map * torch.exp((z_inv - z_inv_max) / blend_params.gamma)
 
     # Also apply exp normalize trick for the background color weight.
     # Clamp to ensure delta is never 0.
-    # pyre-fixme[20]: Argument `max` expected.
-    # pyre-fixme[6]: Expected `Tensor` for 1st param but got `float`.
     delta = torch.exp((eps - z_inv_max) / blend_params.gamma).clamp(min=eps)
 
     # Normalize weights.
@@ -400,6 +404,6 @@ def softmax_multi_alpha_blend(
     print('wb', weighted_background.shape)
     print('d', denom.shape)
     pixel_colors[..., :F] = (weighted_colors + weighted_background) / denom
-    pixel_colors[..., F] = 1.0 - alpha
+    print('pixel colors', pixel_colors.shape)
 
     return pixel_colors

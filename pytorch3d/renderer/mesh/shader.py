@@ -10,7 +10,9 @@ from ..blending import (
     hard_rgb_blend,
     sigmoid_alpha_blend,
     softmax_rgb_blend,
-    softmax_multi_blend
+    softmax_multi_blend,
+    softmax_multi_alpha_blend,
+
 )
 from ..lighting import PointLights
 from ..materials import Materials
@@ -238,12 +240,13 @@ class SoftMultiAlphaShader(nn.Module):
         lights = kwargs.get("lights", self.lights)
         materials = kwargs.get("materials", self.materials)
         blend_params = kwargs.get("blend_params", self.blend_params)
-        colors = texels
-        print('colors shape', colors.shape)
+        colors = texels[...,:-1]
+        alphas = texels[...,-1:]
+        print('colors', colors.shape, 'alphas', alphas.shape)
         znear = kwargs.get("znear", getattr(cameras, "znear", 1.0))
         zfar = kwargs.get("zfar", getattr(cameras, "zfar", 100.0))
         images = softmax_multi_alpha_blend(
-            colors, fragments, blend_params, znear=znear, zfar=zfar
+            colors, alphas, fragments, blend_params, znear=znear, zfar=zfar
         )
         return images
 
