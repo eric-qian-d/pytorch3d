@@ -370,10 +370,8 @@ def softmax_multi_alpha_blend(
     # Mask for padded pixels.
     mask = fragments.pix_to_face >= 0
 
-    print('frag', fragments.dists.shape, 'alpha weights', alpha_weights.shape)
     # Sigmoid probability map based on the distance of the pixel to the face.
-    prob_map = torch.sigmoid(-fragments.dists * alpha_weights.squeeze(4)/ blend_params.sigma) * mask
-    print('prob_map', prob_map.shape)
+    prob_map = torch.sigmoid(-fragments.dists / blend_params.sigma) * mask
 
     # The cumulative product ensures that alpha will be 0.0 if at least 1
     # face fully covers the pixel as for that face, prob will be 1.0.
@@ -387,11 +385,15 @@ def softmax_multi_alpha_blend(
     z_inv = (zfar - fragments.zbuf) / (zfar - znear) * mask
     z_inv_max = torch.max(z_inv, dim=-1).values[..., None].clamp(min=eps)
 
-    weights_num = prob_map * torch.exp((z_inv - z_inv_max) / blend_params.gamma)
+    weights_num = prob_map * torch.exp((z_inv - z_inv_max) / blend_params.gamma) * alpha_weights.squeeze(4)
+    weights_num = alpha_weights.squeeze(4)
+
 
     # Also apply exp normalize trick for the background color weight.
     # Clamp to ensure delta is never 0.
     delta = torch.exp((eps - z_inv_max) / blend_params.gamma).clamp(min=eps)
+    delta = 1 - torch.sum(weights_num, dim=-1, keepdim=True)
+
 
     # Normalize weights.
     # weights_num shape: (N, H, W, K). Sum over K and divide through by the sum.
@@ -400,10 +402,10 @@ def softmax_multi_alpha_blend(
     # Sum: weights * textures + background color
     weighted_colors = (weights_num[..., None] * colors).sum(dim=-2)
     weighted_background = delta * background
-    print('wc', weighted_colors.shape)
-    print('wb', weighted_background.shape)
-    print('d', denom.shape)
     pixel_colors[..., :F] = (weighted_colors + weighted_background) / denom
-    print('pixel colors', pixel_colors.shape)
+
+    if False:
+      print('alphas', alphas, 'shown_alpha', alpha_weights, 'weights', weights_num)
+      print('wc', weighted_colors, 'wb', weighted_background, 'pc', pixel_colors)
 
     return pixel_colors

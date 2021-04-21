@@ -242,8 +242,7 @@ class SoftMultiAlphaShader(nn.Module):
         blend_params = kwargs.get("blend_params", self.blend_params)
         colors = texels[...,:-1]
         alphas = texels[...,-1:]
-        print('colors', colors.shape, 'alphas', alphas.shape)
-        znear = kwargs.get("znear", getattr(cameras, "znear", 1.0))
+        znear = kwargs.get("znear", getattr(cameras, "znear", 0.0))
         zfar = kwargs.get("zfar", getattr(cameras, "zfar", 100.0))
         images = softmax_multi_alpha_blend(
             colors, alphas, fragments, blend_params, znear=znear, zfar=zfar
