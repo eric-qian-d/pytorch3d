@@ -298,9 +298,6 @@ def softmax_multi_blend(
     # Sum: weights * textures + background color
     weighted_colors = (weights_num[..., None] * colors).sum(dim=-2)
     weighted_background = delta * background
-    print('wc', weighted_colors.shape)
-    print('wb', weighted_background.shape)
-    print('d', denom.shape)
     pixel_colors[..., :F] = (weighted_colors + weighted_background) / denom
     pixel_colors[..., F] = 1.0 - alpha
 
@@ -412,13 +409,5 @@ def softmax_multi_alpha_blend(
     weighted_colors = (weights_num[..., None] * colors).sum(dim=-2)
     weighted_background = delta * background
     pixel_colors[..., :F] = (weighted_colors + weighted_background)
-
-    if False:
-      print('weights_num', weights_num[:,0,0,...])
-      print('delta', delta[:,0,0,...])
-
-    if False:
-      print('alphas', alphas, 'shown_alpha', alpha_weights, 'weights', weights_num)
-      print('wc', weighted_colors, 'wb', weighted_background, 'pc', pixel_colors)
 
     return pixel_colors
