@@ -353,7 +353,7 @@ def softmax_multi_alpha_blend(
 
     alpha_weights = alphas.clone()
     for i in range(1, K):
-        alpha_weights[...,i,:] = (1 - alpha_weights[...,i-1,:]) * alphas[...,i,:]
+        alpha_weights[...,i:i+1,:] = (1-torch.sum(alpha_weights[...,:i,:], dim=-2, keepdim=True)) * alphas[...,i:i+1,:]
 
     device = fragments.pix_to_face.device
     pixel_colors = torch.ones((N, H, W, F), dtype=colors.dtype, device=colors.device)
@@ -387,6 +387,15 @@ def softmax_multi_alpha_blend(
 
     weights_num = prob_map * torch.exp((z_inv - z_inv_max) / blend_params.gamma) * alpha_weights.squeeze(4)
     weights_num = alpha_weights.squeeze(4)
+
+    max_indices = torch.argmax(torch.sum(weights_num, dim=-1, keepdim=True))
+    total_alpha = torch.sum(weights_num, dim=-1)
+#    print('mi', max_indices)
+
+    if False:
+      print('weights num', torch.max(weights_num))
+      print('total_alpha', torch.max(total_alpha))
+      print('colors', colors.shape, torch.max(colors[...,:3]), torch.min(colors[...,:3]), torch.min(colors))
 
 
     # Also apply exp normalize trick for the background color weight.
