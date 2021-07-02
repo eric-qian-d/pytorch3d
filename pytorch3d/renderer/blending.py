@@ -304,7 +304,7 @@ def softmax_multi_blend(
     return pixel_colors
 
 def softmax_multi_alpha_blend(
-    colors, alphas, fragments, blend_params, znear: float = 1.0, zfar: float = 100
+    colors, alphas, fragments, blend_params, znear: float = 0.1, zfar: float = 200
 ) -> torch.Tensor:
     """
     RGB and alpha channel blending to return an RGBA image based on the method
