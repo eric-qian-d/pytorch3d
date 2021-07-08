@@ -1,11 +1,15 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All rights reserved.
+# Copyright (c) Facebook, Inc. and its affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
 
 
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import torch
-from pytorch3d import _C  # pyre-fixme[21]: Could not find name `_C` in `pytorch3d`.
+from pytorch3d import _C
 
 from .clip import (
     ClipFrustum,
@@ -244,7 +248,10 @@ def rasterize_meshes(
         # original unclipped faces.  This may involve converting barycentric
         # coordinates
         outputs = convert_clipped_rasterization_to_original_faces(
-            pix_to_face, barycentric_coords, clipped_faces
+            pix_to_face,
+            barycentric_coords,
+            # pyre-fixme[61]: `clipped_faces` may not be initialized here.
+            clipped_faces,
         )
         pix_to_face, barycentric_coords = outputs
 
@@ -276,7 +283,6 @@ class _RasterizeFaceVerts(torch.autograd.Function):
     """
 
     @staticmethod
-    # pyre-fixme[14]: `forward` overrides method defined in `Function` inconsistently.
     # pyre-fixme[14]: `forward` overrides method defined in `Function` inconsistently.
     def forward(
         ctx,
@@ -402,7 +408,7 @@ def pix_to_non_square_ndc(i, S1, S2):
     return -offset + (ndc_range * i + offset) / S1
 
 
-def rasterize_meshes_python(
+def rasterize_meshes_python(  # noqa: C901
     meshes,
     image_size: Union[int, Tuple[int, int]] = 256,
     blur_radius: float = 0.0,
@@ -609,7 +615,10 @@ def rasterize_meshes_python(
         # original unclipped faces.  This may involve converting barycentric
         # coordinates
         (face_idxs, bary_coords,) = convert_clipped_rasterization_to_original_faces(
-            face_idxs, bary_coords, clipped_faces
+            face_idxs,
+            bary_coords,
+            # pyre-fixme[61]: `clipped_faces` may not be initialized here.
+            clipped_faces,
         )
 
     return face_idxs, zbuf, bary_coords, pix_dists

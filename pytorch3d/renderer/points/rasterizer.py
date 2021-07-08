@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-# Copyright (c) Facebook, Inc. and its affiliates. All rights reserved.
+# Copyright (c) Facebook, Inc. and its affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
 
 
 from typing import NamedTuple, Optional, Tuple, Union
@@ -34,7 +38,7 @@ class PointsRasterizationSettings:
         points_per_pixel: int = 8,
         bin_size: Optional[int] = None,
         max_points_per_bin: Optional[int] = None,
-    ):
+    ) -> None:
         self.image_size = image_size
         self.radius = radius
         self.points_per_pixel = points_per_pixel
@@ -47,7 +51,7 @@ class PointsRasterizer(nn.Module):
     This class implements methods for rasterizing a batch of pointclouds.
     """
 
-    def __init__(self, cameras=None, raster_settings=None):
+    def __init__(self, cameras=None, raster_settings=None) -> None:
         """
         cameras: A cameras object which has a  `transform_points` method
                 which returns the transformed points after applying the

@@ -1,4 +1,8 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All rights reserved.
+# Copyright (c) Facebook, Inc. and its affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
 
 from typing import Union
 
@@ -173,7 +177,6 @@ def chamfer_distance(
         )
 
         if is_x_heterogeneous:
-            # pyre-fixme[16]: `int` has no attribute `__setitem__`.
             cham_norm_x[x_mask] = 0.0
         if is_y_heterogeneous:
             cham_norm_y[y_mask] = 0.0

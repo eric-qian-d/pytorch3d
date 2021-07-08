@@ -1,13 +1,18 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All rights reserved.
+# Copyright (c) Facebook, Inc. and its affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
 
 from typing import List, Union
 
 import torch
 
+from ..common.types import Device, make_device
 from . import utils as struct_utils
 
 
-class Meshes(object):
+class Meshes:
     """
     This class provides functions for working with batches of triangulated
     meshes with varying numbers of faces and vertices, and converting between
@@ -207,7 +212,14 @@ class Meshes(object):
         "equisized",
     ]
 
-    def __init__(self, verts=None, faces=None, textures=None):
+    def __init__(
+        self,
+        verts=None,
+        faces=None,
+        textures=None,
+        *,
+        verts_normals=None,
+    ) -> None:
         """
         Args:
             verts:
@@ -229,13 +241,25 @@ class Meshes(object):
                   the same number of faces.
             textures: Optional instance of the Textures class with mesh
                 texture properties.
+            verts_normals:
+                Optional. Can be either
+
+                - List where each element is a tensor of shape (num_verts, 3)
+                  containing the normals of each vertex.
+                - Padded float tensor with shape (num_meshes, max_num_verts, 3).
+                  They should be padded with fill value of 0 so they all have
+                  the same number of vertices.
+                Note that modifying the mesh later, e.g. with offset_verts_,
+                can cause these normals to be forgotten and normals to be recalculated
+                based on the new vertex positions.
 
         Refer to comments above for descriptions of List and Padded representations.
         """
-        self.device = None
+        self.device = torch.device("cpu")
         if textures is not None and not hasattr(textures, "sample_textures"):
             msg = "Expected textures to be an instance of type TexturesBase; got %r"
             raise ValueError(msg % type(textures))
+
         self.textures = textures
 
         # Indicates whether the meshes in the list/batch have the same number
@@ -321,7 +345,6 @@ class Meshes(object):
                 f[f.gt(-1).all(1)].to(torch.int64) if len(f) > 0 else f for f in faces
             ]
             self._N = len(self._verts_list)
-            self.device = torch.device("cpu")
             self.valid = torch.zeros((self._N,), dtype=torch.bool, device=self.device)
             if self._N > 0:
                 self.device = self._verts_list[0].device
@@ -354,8 +377,8 @@ class Meshes(object):
                     self.equisized = True
 
         elif torch.is_tensor(verts) and torch.is_tensor(faces):
-            if verts.size(2) != 3 and faces.size(2) != 3:
-                raise ValueError("Verts and Faces tensors have incorrect dimensions.")
+            if verts.size(2) != 3 or faces.size(2) != 3:
+                raise ValueError("Verts or Faces tensors have incorrect dimensions.")
             self._verts_padded = verts
             self._faces_padded = faces.to(torch.int64)
             self._N = self._verts_padded.shape[0]
@@ -406,16 +429,50 @@ class Meshes(object):
             )
 
         # Set the num verts/faces on the textures if present.
-        if self.textures is not None:
+        if textures is not None:
+            shape_ok = self.textures.check_shapes(self._N, self._V, self._F)
+            if not shape_ok:
+                msg = "Textures do not match the dimensions of Meshes."
+                raise ValueError(msg)
+
             self.textures._num_faces_per_mesh = self._num_faces_per_mesh.tolist()
             self.textures._num_verts_per_mesh = self._num_verts_per_mesh.tolist()
-            self.textures._N = self._N
             self.textures.valid = self.valid
 
-    def __len__(self):
+        if verts_normals is not None:
+            self._set_verts_normals(verts_normals)
+
+    def _set_verts_normals(self, verts_normals) -> None:
+        if isinstance(verts_normals, list):
+            if len(verts_normals) != self._N:
+                raise ValueError("Invalid verts_normals input")
+
+            for item, n_verts in zip(verts_normals, self._num_verts_per_mesh):
+                if (
+                    not isinstance(item, torch.Tensor)
+                    or item.ndim != 2
+                    or item.shape[1] != 3
+                    or item.shape[0] != n_verts
+                ):
+                    raise ValueError("Invalid verts_normals input")
+            self._verts_normals_packed = torch.cat(verts_normals, 0)
+        elif torch.is_tensor(verts_normals):
+            if (
+                verts_normals.ndim != 3
+                or verts_normals.size(2) != 3
+                or verts_normals.size(0) != self._N
+            ):
+                raise ValueError("Vertex normals tensor has incorrect dimensions.")
+            self._verts_normals_packed = struct_utils.padded_to_packed(
+                verts_normals, split_size=self._num_verts_per_mesh.tolist()
+            )
+        else:
+            raise ValueError("verts_normals must be a list or tensor")
+
+    def __len__(self) -> int:
         return self._N
 
-    def __getitem__(self, index):
+    def __getitem__(self, index) -> "Meshes":
         """
         Args:
             index: Specifying the index of the mesh to retrieve.
@@ -436,7 +493,7 @@ class Meshes(object):
             # NOTE consider converting index to cpu for efficiency
             if index.dtype == torch.bool:
                 # advanced indexing on a single dimension
-                index = index.nonzero()
+                index = index.nonzero()  # pyre-ignore
                 index = index.squeeze(1) if index.numel() > 0 else index
                 index = index.tolist()
             verts = [self.verts_list()[i] for i in index]
@@ -683,6 +740,12 @@ class Meshes(object):
             dim=0,
         )
         return self._verts_padded_to_packed_idx
+
+    def has_verts_normals(self) -> bool:
+        """
+        Check whether vertex normals are already present.
+        """
+        return self._verts_normals_packed is not None
 
     def verts_normals_packed(self):
         """
@@ -1079,6 +1142,8 @@ class Meshes(object):
             Sparse FloatTensor of shape (V, V) where V = sum(V_n)
 
         """
+        from ..ops import laplacian
+
         if not (refresh or self._laplacian_packed is None):
             return
 
@@ -1090,39 +1155,8 @@ class Meshes(object):
 
         verts_packed = self.verts_packed()  # (sum(V_n), 3)
         edges_packed = self.edges_packed()  # (sum(E_n), 3)
-        V = verts_packed.shape[0]  # sum(V_n)
 
-        e0, e1 = edges_packed.unbind(1)
-
-        idx01 = torch.stack([e0, e1], dim=1)  # (sum(E_n), 2)
-        idx10 = torch.stack([e1, e0], dim=1)  # (sum(E_n), 2)
-        idx = torch.cat([idx01, idx10], dim=0).t()  # (2, 2*sum(E_n))
-
-        # First, we construct the adjacency matrix,
-        # i.e. A[i, j] = 1 if (i,j) is an edge, or
-        # A[e0, e1] = 1 &  A[e1, e0] = 1
-        ones = torch.ones(idx.shape[1], dtype=torch.float32, device=self.device)
-        A = torch.sparse.FloatTensor(idx, ones, (V, V))
-
-        # the sum of i-th row of A gives the degree of the i-th vertex
-        deg = torch.sparse.sum(A, dim=1).to_dense()
-
-        # We construct the Laplacian matrix by adding the non diagonal values
-        # i.e. L[i, j] = 1 ./ deg(i) if (i, j) is an edge
-        deg0 = deg[e0]
-        deg0 = torch.where(deg0 > 0.0, 1.0 / deg0, deg0)
-        deg1 = deg[e1]
-        deg1 = torch.where(deg1 > 0.0, 1.0 / deg1, deg1)
-        val = torch.cat([deg0, deg1])
-        L = torch.sparse.FloatTensor(idx, val, (V, V))
-
-        # Then we add the diagonal values L[i, i] = -1.
-        idx = torch.arange(V, device=self.device)
-        idx = torch.stack([idx, idx], dim=0)
-        ones = torch.ones(idx.shape[1], dtype=torch.float32, device=self.device)
-        L -= torch.sparse.FloatTensor(idx, ones, (V, V))
-
-        self._laplacian_packed = L
+        self._laplacian_packed = laplacian(verts_packed, edges_packed)
 
     def clone(self):
         """
@@ -1168,7 +1202,7 @@ class Meshes(object):
             other.textures = self.textures.detach()
         return other
 
-    def to(self, device, copy: bool = False):
+    def to(self, device: Device, copy: bool = False):
         """
         Match functionality of torch.Tensor.to()
         If copy = True or the self Tensor is on a different device, the
@@ -1177,34 +1211,37 @@ class Meshes(object):
         then self is returned.
 
         Args:
-            device: Device id for the new tensor.
+            device: Device (as str or torch.device) for the new tensor.
             copy: Boolean indicator whether or not to clone self. Default False.
 
         Returns:
             Meshes object.
         """
-        if not copy and self.device == device:
+        device_ = make_device(device)
+        if not copy and self.device == device_:
             return self
 
         other = self.clone()
-        if self.device != device:
-            other.device = device
-            if other._N > 0:
-                other._verts_list = [v.to(device) for v in other._verts_list]
-                other._faces_list = [f.to(device) for f in other._faces_list]
-            for k in self._INTERNAL_TENSORS:
-                v = getattr(self, k)
-                if torch.is_tensor(v):
-                    setattr(other, k, v.to(device))
-            if self.textures is not None:
-                other.textures = other.textures.to(device)
+        if self.device == device_:
+            return other
+
+        other.device = device_
+        if other._N > 0:
+            other._verts_list = [v.to(device_) for v in other._verts_list]
+            other._faces_list = [f.to(device_) for f in other._faces_list]
+        for k in self._INTERNAL_TENSORS:
+            v = getattr(self, k)
+            if torch.is_tensor(v):
+                setattr(other, k, v.to(device_))
+        if self.textures is not None:
+            other.textures = other.textures.to(device_)
         return other
 
     def cpu(self):
-        return self.to(torch.device("cpu"))
+        return self.to("cpu")
 
     def cuda(self):
-        return self.to(torch.device("cuda"))
+        return self.to("cuda")
 
     def get_mesh_verts_faces(self, index: int):
         """
@@ -1253,6 +1290,7 @@ class Meshes(object):
     def offset_verts_(self, vert_offsets_packed):
         """
         Add an offset to the vertices of this Meshes. In place operation.
+        If normals are present they may be recalculated.
 
         Args:
             vert_offsets_packed: A Tensor of shape (3,) or the same shape as
@@ -1263,7 +1301,10 @@ class Meshes(object):
         """
         verts_packed = self.verts_packed()
         if vert_offsets_packed.shape == (3,):
+            update_normals = False
             vert_offsets_packed = vert_offsets_packed.expand_as(verts_packed)
+        else:
+            update_normals = True
         if vert_offsets_packed.shape != verts_packed.shape:
             raise ValueError("Verts offsets must have dimension (all_v, 3).")
         # update verts packed
@@ -1283,13 +1324,13 @@ class Meshes(object):
                     self._verts_padded[i, : verts.shape[0], :] = verts
 
         # update face areas and normals and vertex normals
-        # only if the original attributes are computed
-        if any(
+        # only if the original attributes are present
+        if update_normals and any(
             v is not None
             for v in [self._faces_areas_packed, self._faces_normals_packed]
         ):
             self._compute_face_areas_normals(refresh=True)
-        if self._verts_normals_packed is not None:
+        if update_normals and self._verts_normals_packed is not None:
             self._compute_vertex_normals(refresh=True)
 
         return self
@@ -1336,15 +1377,13 @@ class Meshes(object):
                 if len(verts) > 0:
                     self._verts_padded[i, : verts.shape[0], :] = verts
 
-        # update face areas and normals and vertex normals
+        # update face areas and normals
         # only if the original attributes are computed
         if any(
             v is not None
             for v in [self._faces_areas_packed, self._faces_normals_packed]
         ):
             self._compute_face_areas_normals(refresh=True)
-        if self._verts_normals_packed is not None:
-            self._compute_vertex_normals(refresh=True)
         return self
 
     def scale_verts(self, scale):
@@ -1501,6 +1540,13 @@ class Meshes(object):
 
     def sample_textures(self, fragments):
         if self.textures is not None:
+
+            # Check dimensions of textures match that of meshes
+            shape_ok = self.textures.check_shapes(self._N, self._V, self._F)
+            if not shape_ok:
+                msg = "Textures do not match the dimensions of Meshes."
+                raise ValueError(msg)
+
             # Pass in faces packed. If the textures are defined per
             # vertex, the face indices are needed in order to interpolate
             # the vertex attributes across the face.

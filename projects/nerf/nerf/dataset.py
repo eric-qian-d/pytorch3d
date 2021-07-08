@@ -1,4 +1,9 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All rights reserved.
+# Copyright (c) Facebook, Inc. and its affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import os
 from typing import List, Optional, Tuple
 
@@ -31,7 +36,7 @@ class ListDataset(Dataset):
     A simple dataset made of a list of entries.
     """
 
-    def __init__(self, entries: List):
+    def __init__(self, entries: List) -> None:
         """
         Args:
             entries: The list of dataset entries.
@@ -40,7 +45,7 @@ class ListDataset(Dataset):
 
     def __len__(
         self,
-    ):
+    ) -> int:
         return len(self._entries)
 
     def __getitem__(self, index):
@@ -131,7 +136,7 @@ def download_data(
     dataset_names: Optional[List[str]] = None,
     data_root: str = DEFAULT_DATA_ROOT,
     url_root: str = DEFAULT_URL_ROOT,
-):
+) -> None:
     """
     Downloads the relevant dataset files.
 

@@ -1,4 +1,8 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All rights reserved.
+# Copyright (c) Facebook, Inc. and its affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
 
 
 import torch
@@ -28,7 +32,7 @@ class MeshRenderer(nn.Module):
     function.
     """
 
-    def __init__(self, rasterizer, shader):
+    def __init__(self, rasterizer, shader) -> None:
         super().__init__()
         print('initing')
         self.rasterizer = rasterizer
@@ -73,7 +77,7 @@ class MeshRendererWithFragments(nn.Module):
         depth = fragments.zbuf
     """
 
-    def __init__(self, rasterizer, shader):
+    def __init__(self, rasterizer, shader) -> None:
         super().__init__()
         self.rasterizer = rasterizer
         self.shader = shader

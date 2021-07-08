@@ -1,14 +1,20 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All rights reserved.
+# Copyright (c) Facebook, Inc. and its affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
 
 import contextlib
 import pathlib
 import warnings
-from typing import IO, ContextManager, Optional
+from typing import IO, ContextManager, Optional, Union
 
 import numpy as np
 import torch
 from iopath.common.file_io import PathManager
 from PIL import Image
+
+from ..common.types import Device
 
 
 @contextlib.contextmanager
@@ -17,6 +23,9 @@ def nullcontext(x):
     This is just like contextlib.nullcontext but also works in Python 3.6.
     """
     yield x
+
+
+PathOrStr = Union[pathlib.Path, str]
 
 
 def _open_file(f, path_manager: PathManager, mode="r") -> ContextManager[IO]:
@@ -31,7 +40,7 @@ def _open_file(f, path_manager: PathManager, mode="r") -> ContextManager[IO]:
 
 
 def _make_tensor(
-    data, cols: int, dtype: torch.dtype, device: str = "cpu"
+    data, cols: int, dtype: torch.dtype, device: Device = "cpu"
 ) -> torch.Tensor:
     """
     Return a 2D tensor with the specified cols and dtype filled with data,

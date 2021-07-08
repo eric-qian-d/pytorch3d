@@ -1,4 +1,9 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All rights reserved.
+# Copyright (c) Facebook, Inc. and its affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import time
 import warnings
 from itertools import cycle
@@ -11,20 +16,20 @@ from matplotlib import colors as mcolors
 from visdom import Visdom
 
 
-class AverageMeter(object):
+class AverageMeter:
     """
     Computes and stores the average and current value.
     Tracks the exact history of the added values in every epoch.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initialize the structure with empty history and zero-ed moving average.
         """
         self.history = []
         self.reset()
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Reset the running average meter.
         """
@@ -33,7 +38,7 @@ class AverageMeter(object):
         self.sum = 0
         self.count = 0
 
-    def update(self, val: float, n: int = 1, epoch: int = 0):
+    def update(self, val: float, n: int = 1, epoch: int = 0) -> None:
         """
         Updates the average meter with a value `val`.
 
@@ -65,7 +70,7 @@ class AverageMeter(object):
         ]
 
 
-class Stats(object):
+class Stats:
     """
     Stats logging object useful for gathering statistics of training
     a deep network in PyTorch.
@@ -105,7 +110,7 @@ class Stats(object):
         verbose: bool = False,
         epoch: int = -1,
         plot_file: Optional[str] = None,
-    ):
+    ) -> None:
         """
         Args:
             log_vars: The list of variable names to be logged.
@@ -118,7 +123,7 @@ class Stats(object):
         self.plot_file = plot_file
         self.hard_reset(epoch=epoch)
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Called before an epoch to clear current epoch buffers.
         """
@@ -133,7 +138,7 @@ class Stats(object):
         # Set a new timestamp.
         self._epoch_start = time.time()
 
-    def hard_reset(self, epoch: int = -1):
+    def hard_reset(self, epoch: int = -1) -> None:
         """
         Erases all logged data.
         """
@@ -144,7 +149,7 @@ class Stats(object):
         self.stats = {}
         self.reset()
 
-    def new_epoch(self):
+    def new_epoch(self) -> None:
         """
         Initializes a new epoch.
         """
@@ -161,7 +166,7 @@ class Stats(object):
             val = float(val.sum())
         return val
 
-    def update(self, preds: dict, stat_set: str = "train"):
+    def update(self, preds: dict, stat_set: str = "train") -> None:
         """
         Update the internal logs with metrics of a training step.
 
@@ -206,7 +211,7 @@ class Stats(object):
             if val is not None:
                 self.stats[stat_set][stat].update(val, epoch=epoch, n=1)
 
-    def print(self, max_it: Optional[int] = None, stat_set: str = "train"):
+    def print(self, max_it: Optional[int] = None, stat_set: str = "train") -> None:
         """
         Print the current values of all stored stats.
 
@@ -242,7 +247,7 @@ class Stats(object):
         viz: Visdom = None,
         visdom_env: Optional[str] = None,
         plot_file: Optional[str] = None,
-    ):
+    ) -> None:
         """
         Plot the line charts of the history of the stats.
 

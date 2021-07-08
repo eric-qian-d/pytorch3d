@@ -1,4 +1,9 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All rights reserved.
+# Copyright (c) Facebook, Inc. and its affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 from typing import Callable, Tuple
 
 import torch
@@ -100,7 +105,7 @@ class ImplicitRenderer(torch.nn.Module):
         ```
     """
 
-    def __init__(self, raysampler: Callable, raymarcher: Callable):
+    def __init__(self, raysampler: Callable, raymarcher: Callable) -> None:
         """
         Args:
             raysampler: A `Callable` that takes as input scene cameras
@@ -201,7 +206,7 @@ class VolumeRenderer(torch.nn.Module):
 
     def __init__(
         self, raysampler: Callable, raymarcher: Callable, sample_mode: str = "bilinear"
-    ):
+    ) -> None:
         """
         Args:
             raysampler: A `Callable` that takes as input scene cameras
@@ -251,7 +256,7 @@ class VolumeSampler(torch.nn.Module):
     at 3D points sampled along projection rays.
     """
 
-    def __init__(self, volumes: Volumes, sample_mode: str = "bilinear"):
+    def __init__(self, volumes: Volumes, sample_mode: str = "bilinear") -> None:
         """
         Args:
             volumes: An instance of the `Volumes` class representing a

@@ -1,4 +1,8 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All rights reserved.
+# Copyright (c) Facebook, Inc. and its affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
 
 import json
 import os
@@ -13,7 +17,7 @@ from pytorch3d.datasets.shapenet_base import ShapeNetBase
 SYNSET_DICT_DIR = Path(__file__).resolve().parent
 
 
-class ShapeNetCore(ShapeNetBase):
+class ShapeNetCore(ShapeNetBase):  # pragma: no cover
     """
     This class loads ShapeNetCore from a given directory into a Dataset object.
     ShapeNetCore is a subset of the ShapeNet dataset and can be downloaded from
@@ -27,7 +31,7 @@ class ShapeNetCore(ShapeNetBase):
         version: int = 1,
         load_textures: bool = True,
         texture_resolution: int = 4,
-    ):
+    ) -> None:
         """
         Store each object's synset id and models id from data_dir.
 

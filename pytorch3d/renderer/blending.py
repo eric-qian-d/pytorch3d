@@ -1,10 +1,14 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All rights reserved.
+# Copyright (c) Facebook, Inc. and its affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
 
 
-from typing import NamedTuple, Sequence
+from typing import NamedTuple, Sequence, Union
 
 import torch
-from pytorch3d import _C  # pyre-fixme[21]: Could not find name `_C` in `pytorch3d`.
+from pytorch3d import _C
 
 
 # Example functions for blending the top K colors per pixel using the outputs
@@ -16,10 +20,12 @@ from pytorch3d import _C  # pyre-fixme[21]: Could not find name `_C` in `pytorch
 class BlendParams(NamedTuple):
     sigma: float = 1e-4
     gamma: float = 1e-4
-    background_color: Sequence = (1.0, 1.0, 1.0)
+    background_color: Union[torch.Tensor, Sequence[float]] = (1.0, 1.0, 1.0)
 
 
-def hard_rgb_blend(colors, fragments, blend_params) -> torch.Tensor:
+def hard_rgb_blend(
+    colors: torch.Tensor, fragments, blend_params: BlendParams
+) -> torch.Tensor:
     """
     Naive blending of top K faces to return an RGBA image
       - **RGB** - choose color of the closest point i.e. K=0
@@ -43,10 +49,11 @@ def hard_rgb_blend(colors, fragments, blend_params) -> torch.Tensor:
     # Mask for the background.
     is_background = fragments.pix_to_face[..., 0] < 0  # (N, H, W)
 
-    if torch.is_tensor(blend_params.background_color):
-        background_color = blend_params.background_color.to(device)
+    background_color_ = blend_params.background_color
+    if isinstance(background_color_, torch.Tensor):
+        background_color = background_color_.to(device)
     else:
-        background_color = colors.new_tensor(blend_params.background_color)  # (3)
+        background_color = colors.new_tensor(background_color_)  # pyre-fixme[16]
 
     # Find out how much background_color needs to be expanded to be used for masked_scatter.
     num_background_pixels = is_background.sum()
@@ -58,7 +65,8 @@ def hard_rgb_blend(colors, fragments, blend_params) -> torch.Tensor:
     )  # (N, H, W, 3)
 
     # Concat with the alpha channel.
-    alpha = torch.ones((N, H, W, 1), dtype=colors.dtype, device=device)
+    alpha = (~is_background).type_as(pixel_colors)[..., None]
+
     return torch.cat([pixel_colors, alpha], dim=-1)  # (N, H, W, 4)
 
 
@@ -85,7 +93,7 @@ class _SigmoidAlphaBlend(torch.autograd.Function):
 _sigmoid_alpha = _SigmoidAlphaBlend.apply
 
 
-def sigmoid_alpha_blend(colors, fragments, blend_params) -> torch.Tensor:
+def sigmoid_alpha_blend(colors, fragments, blend_params: BlendParams) -> torch.Tensor:
     """
     Silhouette blending to return an RGBA image
       - **RGB** - choose color of the closest point.
@@ -116,7 +124,11 @@ def sigmoid_alpha_blend(colors, fragments, blend_params) -> torch.Tensor:
 
 
 def softmax_rgb_blend(
-    colors, fragments, blend_params, znear: float = 1.0, zfar: float = 100
+    colors: torch.Tensor,
+    fragments,
+    blend_params: BlendParams,
+    znear: Union[float, torch.Tensor] = 1.0,
+    zfar: Union[float, torch.Tensor] = 100,
 ) -> torch.Tensor:
     """
     RGB and alpha channel blending to return an RGBA image based on the method
@@ -158,11 +170,11 @@ def softmax_rgb_blend(
     N, H, W, K = fragments.pix_to_face.shape
     device = fragments.pix_to_face.device
     pixel_colors = torch.ones((N, H, W, 4), dtype=colors.dtype, device=colors.device)
-    background = blend_params.background_color
-    if not torch.is_tensor(background):
-        background = torch.tensor(background, dtype=torch.float32, device=device)
+    background_ = blend_params.background_color
+    if not isinstance(background_, torch.Tensor):
+        background = torch.tensor(background_, dtype=torch.float32, device=device)
     else:
-        background = background.to(device)
+        background = background_.to(device)
 
     # Weight for background color
     eps = 1e-10
@@ -183,16 +195,20 @@ def softmax_rgb_blend(
     # overflow. zbuf shape (N, H, W, K), find max over K.
     # TODO: there may still be some instability in the exponent calculation.
 
+    # Reshape to be compatible with (N, H, W, K) values in fragments
+    if torch.is_tensor(zfar):
+        # pyre-fixme[16]
+        zfar = zfar[:, None, None, None]
+    if torch.is_tensor(znear):
+        znear = znear[:, None, None, None]
+
     z_inv = (zfar - fragments.zbuf) / (zfar - znear) * mask
     # pyre-fixme[16]: `Tuple` has no attribute `values`.
-    # pyre-fixme[6]: Expected `Tensor` for 1st param but got `float`.
     z_inv_max = torch.max(z_inv, dim=-1).values[..., None].clamp(min=eps)
-    # pyre-fixme[6]: Expected `Tensor` for 1st param but got `float`.
     weights_num = prob_map * torch.exp((z_inv - z_inv_max) / blend_params.gamma)
 
     # Also apply exp normalize trick for the background color weight.
     # Clamp to ensure delta is never 0.
-    # pyre-fixme[20]: Argument `max` expected.
     # pyre-fixme[6]: Expected `Tensor` for 1st param but got `float`.
     delta = torch.exp((eps - z_inv_max) / blend_params.gamma).clamp(min=eps)
 

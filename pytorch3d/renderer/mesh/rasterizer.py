@@ -1,4 +1,8 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All rights reserved.
+# Copyright (c) Facebook, Inc. and its affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
 
 from typing import NamedTuple, Optional, Tuple, Union
 
@@ -45,7 +49,7 @@ class RasterizationSettings:
         cull_backfaces: bool = False,
         z_clip_value: Optional[float] = None,
         cull_to_frustum: bool = False,
-    ):
+    ) -> None:
         self.image_size = image_size
         self.blur_radius = blur_radius
         self.faces_per_pixel = faces_per_pixel
@@ -64,7 +68,7 @@ class MeshRasterizer(nn.Module):
     Meshes.
     """
 
-    def __init__(self, cameras=None, raster_settings=None):
+    def __init__(self, cameras=None, raster_settings=None) -> None:
         """
         Args:
             cameras: A cameras object which has a  `transform_points` method

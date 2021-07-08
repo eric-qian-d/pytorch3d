@@ -1,4 +1,8 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All rights reserved.
+# Copyright (c) Facebook, Inc. and its affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
 
 from typing import Dict, List, Optional, Tuple
 
@@ -11,7 +15,7 @@ EPS = 0.00001
 
 
 class Cube:
-    def __init__(self, bfl_vertex: Tuple[int, int, int], spacing: int = 1):
+    def __init__(self, bfl_vertex: Tuple[int, int, int], spacing: int = 1) -> None:
         """
         Initializes a cube given the bottom front left vertex coordinate
         and the cube spacing

@@ -1,4 +1,9 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All rights reserved.
+# Copyright (c) Facebook, Inc. and its affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import warnings
 from typing import Optional, Tuple, Union
 
@@ -44,7 +49,7 @@ class EmissionAbsorptionRaymarcher(torch.nn.Module):
     elements along the ray direction.
     """
 
-    def __init__(self, surface_thickness: int = 1):
+    def __init__(self, surface_thickness: int = 1) -> None:
         """
         Args:
             surface_thickness: Denotes the overlap between the absorption
@@ -123,7 +128,7 @@ class AbsorptionOnlyRaymarcher(torch.nn.Module):
     It then returns `opacities = 1 - total_transmission`.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     def forward(

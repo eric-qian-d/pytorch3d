@@ -1,6 +1,10 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All rights reserved.
+# Copyright (c) Facebook, Inc. and its affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
 
-
+# @lint-ignore-every LICENSELINT
 # Some of the code below is adapted from Soft Rasterizer (SoftRas)
 #
 # Copyright (c) 2017 Hiroharu Kato
@@ -49,7 +53,7 @@ from pytorch3d.renderer.cameras import (
 )
 from pytorch3d.transforms import Transform3d
 from pytorch3d.transforms.rotation_conversions import random_rotations
-from pytorch3d.transforms.so3 import so3_exponential_map
+from pytorch3d.transforms.so3 import so3_exp_map
 
 
 # Naive function adapted from SoftRasterizer for test purposes.
@@ -141,7 +145,7 @@ def init_random_cameras(
     T = torch.randn(batch_size, 3) * 0.03
     if not random_z:
         T[:, 2] = 4
-    R = so3_exponential_map(torch.randn(batch_size, 3) * 3.0)
+    R = so3_exp_map(torch.randn(batch_size, 3) * 3.0)
     cam_params = {"R": R, "T": T}
     if cam_type in (OpenGLPerspectiveCameras, OpenGLOrthographicCameras):
         cam_params["znear"] = torch.rand(batch_size) * 10 + 0.1
@@ -505,7 +509,7 @@ class TestCamerasCommon(TestCaseMixin, unittest.TestCase):
     def init_equiv_cameras_ndc_screen(cam_type: CamerasBase, batch_size: int):
         T = torch.randn(batch_size, 3) * 0.03
         T[:, 2] = 4
-        R = so3_exponential_map(torch.randn(batch_size, 3) * 3.0)
+        R = so3_exp_map(torch.randn(batch_size, 3) * 3.0)
         screen_cam_params = {"R": R, "T": T}
         ndc_cam_params = {"R": R, "T": T}
         if cam_type in (OrthographicCameras, PerspectiveCameras):

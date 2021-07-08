@@ -1,4 +1,9 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All rights reserved.
+# Copyright (c) Facebook, Inc. and its affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import math
 import warnings
 from typing import Any, Dict, Optional, Tuple, Union
@@ -46,7 +51,7 @@ class PulsarPointsRenderer(nn.Module):
         n_channels: int = 3,
         max_num_spheres: int = int(1e6),  # noqa: B008
         **kwargs,
-    ):
+    ) -> None:
         """
         rasterizer (PointsRasterizer): An object encapsulating rasterization parameters.
         compositor (ignored): Only keeping this for interface consistency. Default: None.

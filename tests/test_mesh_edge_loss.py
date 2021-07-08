@@ -1,4 +1,8 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All rights reserved.
+# Copyright (c) Facebook, Inc. and its affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
 
 import unittest
 
@@ -6,7 +10,7 @@ import torch
 from common_testing import TestCaseMixin
 from pytorch3d.loss import mesh_edge_loss
 from pytorch3d.structures import Meshes
-from test_sample_points_from_meshes import TestSamplePoints
+from test_sample_points_from_meshes import init_meshes
 
 
 class TestMeshEdgeLoss(TestCaseMixin, unittest.TestCase):
@@ -92,7 +96,7 @@ class TestMeshEdgeLoss(TestCaseMixin, unittest.TestCase):
 
     @staticmethod
     def mesh_edge_loss(num_meshes: int = 10, max_v: int = 100, max_f: int = 300):
-        meshes = TestSamplePoints.init_meshes(num_meshes, max_v, max_f, device="cuda:0")
+        meshes = init_meshes(num_meshes, max_v, max_f, device="cuda:0")
         torch.cuda.synchronize()
 
         def compute_loss():

@@ -1,4 +1,9 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All rights reserved.
+# Copyright (c) Facebook, Inc. and its affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 from typing import TYPE_CHECKING, Optional, Tuple
 
 import torch
@@ -380,7 +385,6 @@ def splat_points_to_volumes(
                 volume_features.scatter_add_(2, idx_valid, w_valid * points_features)
 
     # divide each feature by the total weight of the votes
-    # pyre-fixme[20]: Argument `max` expected.
     volume_features = volume_features / volume_densities.view(ba, 1, n_voxels).clamp(
         min_weight
     )
@@ -458,7 +462,6 @@ def round_points_to_volumes(
 
     # valid - binary indicators of votes that fall into the volume
     grid_sizes = grid_sizes.type_as(XYZ)
-    # pyre-fixme[16]: `int` has no attribute `long`.
     valid = (
         (0 <= X)
         * (X < grid_sizes_xyz[:, None, 0:1])
@@ -491,7 +494,6 @@ def round_points_to_volumes(
     volume_features.scatter_add_(2, idx_valid, w_valid * points_features)
 
     # divide each feature by the total weight of the votes
-    # pyre-fixme[20]: Argument `max` expected.
     volume_features = volume_features / volume_densities.view(ba, 1, n_voxels).clamp(
         1.0
     )

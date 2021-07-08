@@ -1,4 +1,9 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All rights reserved.
+# Copyright (c) Facebook, Inc. and its affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import math
 from typing import List
 
@@ -69,11 +74,11 @@ class ProbabilisticRaysampler(torch.nn.Module):
         # Calculate the mid-points between the ray depths.
         z_vals = input_ray_bundle.lengths
         batch_size = z_vals.shape[0]
-        z_vals_mid = 0.5 * (z_vals[..., 1:] + z_vals[..., :-1])
 
         # Carry out the importance sampling.
-        z_samples = (
-            sample_pdf(
+        with torch.no_grad():
+            z_vals_mid = 0.5 * (z_vals[..., 1:] + z_vals[..., :-1])
+            z_samples = sample_pdf(
                 z_vals_mid.view(-1, z_vals_mid.shape[-1]),
                 ray_weights.view(-1, ray_weights.shape[-1])[..., 1:-1],
                 self._n_pts_per_ray,
@@ -81,10 +86,7 @@ class ProbabilisticRaysampler(torch.nn.Module):
                     (self._stratified and self.training)
                     or (self._stratified_test and not self.training)
                 ),
-            )
-            .detach()
-            .view(batch_size, z_vals.shape[1], self._n_pts_per_ray)
-        )
+            ).view(batch_size, z_vals.shape[1], self._n_pts_per_ray)
 
         if self._add_input_samples:
             # Add the new samples to the input ones.

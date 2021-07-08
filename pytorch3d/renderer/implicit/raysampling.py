@@ -1,4 +1,9 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All rights reserved.
+# Copyright (c) Facebook, Inc. and its affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import torch
 
 from ..cameras import CamerasBase
@@ -61,7 +66,7 @@ class GridRaysampler(torch.nn.Module):
         n_pts_per_ray: int,
         min_depth: float,
         max_depth: float,
-    ):
+    ) -> None:
         """
         Args:
             min_x: The leftmost x-coordinate of each ray's source pixel's center.
@@ -145,7 +150,7 @@ class NDCGridRaysampler(GridRaysampler):
         n_pts_per_ray: int,
         min_depth: float,
         max_depth: float,
-    ):
+    ) -> None:
         """
         Args:
             image_width: The horizontal size of the image grid.
@@ -187,7 +192,7 @@ class MonteCarloRaysampler(torch.nn.Module):
         n_pts_per_ray: int,
         min_depth: float,
         max_depth: float,
-    ):
+    ) -> None:
         """
         Args:
             min_x: The smallest x-coordinate of each ray's source pixel.
