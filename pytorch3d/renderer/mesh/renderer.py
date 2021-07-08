@@ -30,6 +30,7 @@ class MeshRenderer(nn.Module):
 
     def __init__(self, rasterizer, shader):
         super().__init__()
+        print('initing')
         self.rasterizer = rasterizer
         self.shader = shader
 
